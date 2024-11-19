@@ -26,23 +26,23 @@ echo "[$(date +%F) $(date +%T)] - ProxyPinCA post-fs-data.sh start."
 chown -R 0:0 ${MODDIR}/system/etc/security/cacerts
 if [ -d /apex/com.android.conscrypt/cacerts ]; then
     # 检测到 android 14 以上，存在该证书目录
-    CERT_HASH=243f0bfb
-
-    CERT_FILE=${MODDIR}/system/etc/security/cacerts/${CERT_HASH}.0
-    echo "[$(date +%F) $(date +%T)] - CERT_FILE: ${CERT_FILE}"
-    if ! [ -e "${CERT_FILE}" ]; then
-        echo "[$(date +%F) $(date +%T)] - ProxyPinCA certificate not found."
-        exit 0
-    fi
+    CERT_PATH=${MODDIR}/system/etc/security/cacerts/
+    echo "[$(date +%F) $(date +%T)] - CERT_PATH: ${CERT_PATH}"
 
     TEMP_DIR=/data/local/tmp/cacerts-copy
     rm -rf "$TEMP_DIR"
     mkdir -p -m 700 "$TEMP_DIR"
     mount -t tmpfs tmpfs "$TEMP_DIR"
 
-    # 复制证书到临时目录
     cp -f /apex/com.android.conscrypt/cacerts/* "$TEMP_DIR"
-    cp -f $CERT_FILE "$TEMP_DIR"
+
+    # 遍历证书目录
+    for CERT_FILE in $(ls ${CERT_PATH}/*.0); do
+        CERT_HASH=$(basename ${CERT_FILE} .0)
+        cp -f "$CERT_FILE" "$TEMP_DIR"
+        # 复制证书到临时目录
+        echo "[$(date +%F) $(date +%T)] - CERT_FILE: ${CERT_FILE}" >> $LOG_PATH
+    done
 
     chown -R 0:0 "$TEMP_DIR"
     set_context /apex/com.android.conscrypt/cacerts "$TEMP_DIR"
